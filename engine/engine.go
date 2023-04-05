@@ -20,12 +20,14 @@ type Cell interface {
 
 type RowAssoc map[string]Cell
 
+type ResultColumn struct {
+	Type ColumnType
+	Name string
+}
+
 type Result struct {
 	Rows    [][]Cell
-	Columns []struct {
-		Type ColumnType
-		Name string
-	}
+	Columns []*ResultColumn
 
 	it *lib.VirtualIterator[RowAssoc]
 }

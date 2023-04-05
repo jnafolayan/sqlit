@@ -28,19 +28,23 @@ type tableColumn struct {
 	name       string
 }
 
-type table struct {
+type memoryTable struct {
 	columns []*tableColumn
 	rows    [][]memoryCell
 }
 
-type MemoryBackend struct {
-	tables map[string]*table
+func NewMemoryBackendTable() map[string]*memoryTable {
+	return map[string]*memoryTable{}
 }
 
-func NewMemoryBackend(existing map[string]*table) *MemoryBackend {
+type MemoryBackend struct {
+	tables map[string]*memoryTable
+}
+
+func NewMemoryBackend(existing map[string]*memoryTable) *MemoryBackend {
 	tables := existing
 	if existing == nil {
-		tables = map[string]*table{}
+		tables = NewMemoryBackendTable()
 	}
 
 	return &MemoryBackend{
@@ -49,7 +53,7 @@ func NewMemoryBackend(existing map[string]*table) *MemoryBackend {
 }
 
 func (mb *MemoryBackend) CreateTable(stmt *ast.CreateTableStatement) error {
-	t := &table{}
+	t := &memoryTable{}
 
 	for _, col := range stmt.Columns {
 		var colType ColumnType
@@ -127,10 +131,8 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 	}
 
 	resultRows := [][]Cell{}
-	columns := []struct {
-		Type ColumnType
-		Name string
-	}{}
+	// Set of columns requested
+	columnsMap := map[string]*ResultColumn{}
 
 	for _, col := range stmt.Columns {
 		var colType ColumnType
@@ -139,24 +141,34 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 			colType = TEXT_COLUMN
 		case token.INT:
 			colType = INT_COLUMN
+		case token.ASTERISK:
+			for _, c := range t.columns {
+				columnsMap[c.name] = &ResultColumn{
+					Type: c.columnType,
+					Name: c.name,
+				}
+			}
+			continue
 		default:
 			return nil, ErrInvalidDataType
 		}
 
-		columns = append(columns, struct {
-			Type ColumnType
-			Name string
-		}{
+		columnsMap[col.Literal] = &ResultColumn{
 			Type: colType,
 			Name: col.Literal,
-		})
+		}
+	}
+
+	columns := []*ResultColumn{}
+	for _, v := range columnsMap {
+		columns = append(columns, v)
 	}
 
 	colNameToIdx := generateColNameToIndexMap(t.columns)
 	for _, row := range t.rows {
 		res := []Cell{}
-		for _, col := range stmt.Columns {
-			colIdx, ok := colNameToIdx[col.Literal]
+		for _, col := range columns {
+			colIdx, ok := colNameToIdx[col.Name]
 			if !ok {
 				return nil, ErrColumnNotFound
 			}

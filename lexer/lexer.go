@@ -120,6 +120,8 @@ func (l *Lexer) Tokenize() []*token.Token {
 
 				// dont call readChar()
 				continue
+			} else {
+				tokens = append(tokens, createToken(l.cursor, token.ILLEGAL))
 			}
 		}
 

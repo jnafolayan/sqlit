@@ -62,9 +62,19 @@ func (p *Parser) Parse() (*ast.Program, error) {
 	for p.nextToken() != nil {
 		stmt, err := p.parseStatement()
 		if err != nil {
-			loc := p.curToken.Location
 			errorPrefix := ""
 			if !p.OmitErrorLocation {
+				var loc *token.TokenLocation
+				if p.curToken != nil {
+					loc = p.curToken.Location
+				} else {
+					// we're at EOF
+					lastToken := tokens[len(tokens)-1]
+					loc = &token.TokenLocation{
+						Line: lastToken.Location.Line,
+						Col:  lastToken.Location.Col + len(lastToken.Literal) + 2, // 2 to leave a space between cur token and expected token location
+					}
+				}
 				errorPrefix = fmt.Sprintf("line %d, col %d: ", loc.Line, loc.Col)
 			}
 			return nil, fmt.Errorf("%s%w", errorPrefix, err)
@@ -131,10 +141,13 @@ func (p *Parser) parseCreateTableStatement() (ast.Statement, error) {
 	stmt := &ast.CreateTableStatement{}
 
 	if !p.expectPeekToken(token.TABLE) {
+		p.nextToken()
 		return nil, expectedTokenError(token.TABLE)
 	}
 
 	if !p.expectPeekToken(token.IDENTIFIER) {
+		p.nextToken()
+		p.nextToken()
 		return nil, errors.New("expected table name")
 	}
 
@@ -183,16 +196,19 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 	stmt := &ast.InsertStatement{}
 
 	if !p.expectPeekToken(token.INTO) {
+		p.nextToken()
 		return nil, expectedTokenError(token.INTO)
 	}
 
 	if !p.expectPeekToken(token.IDENTIFIER) {
+		p.nextToken()
 		return nil, errors.New("expected table name")
 	}
 
 	stmt.Table = p.curToken
 
 	if !p.expectPeekToken(token.LPAREN) {
+		p.nextToken()
 		return nil, expectedTokenError(token.LPAREN)
 	}
 
@@ -213,10 +229,12 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 	// TODO(jnafolayan): to check if curToken is RPAREN?
 
 	if !p.expectPeekToken(token.VALUES) {
+		p.nextToken()
 		return nil, expectedTokenError(token.VALUES)
 	}
 
 	if !p.expectPeekToken(token.LPAREN) {
+		p.nextToken()
 		return nil, expectedTokenError(token.LPAREN)
 	}
 
@@ -231,6 +249,14 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 		if p.checkCurToken(token.COMMA) {
 			p.nextToken()
 		}
+	}
+
+	if len(stmt.Values) != len(stmt.Columns) {
+		return nil, errors.New("number of values must match number of columns")
+	}
+
+	if p.checkPeekToken(token.SEMICOLON) {
+		p.nextToken()
 	}
 
 	return stmt, nil
