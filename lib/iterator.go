@@ -10,21 +10,12 @@ func NewIterator[T interface{}](list []T) *Iterator[T] {
 }
 
 func (i *Iterator[T]) Next() (v T) {
-	if i.cursor < len(i.list)-1 {
-		i.cursor++
+	i.cursor++
+	if i.cursor < len(i.list) {
 		v = i.list[i.cursor]
 	}
 
 	return
-}
-
-func (i *Iterator[T]) Prev() (v T) {
-	if i.cursor < len(i.list)-1 {
-		i.cursor++
-		v = i.list[i.cursor]
-	}
-
-	return v
 }
 
 func (i *Iterator[T]) Peek() (v T) {

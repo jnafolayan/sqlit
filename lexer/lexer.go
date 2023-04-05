@@ -108,7 +108,7 @@ func (l *Lexer) Tokenize() []*token.Token {
 				continue
 			} else if isDigit(l.cursor.char) {
 				t := &token.Token{
-					Type: token.NUMBER,
+					Type: token.INT,
 					Location: &token.TokenLocation{
 						Line: l.cursor.loc.Line,
 						Col:  l.cursor.loc.Col,

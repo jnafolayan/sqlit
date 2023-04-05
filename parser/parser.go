@@ -201,7 +201,7 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 		stmt.Columns = append(stmt.Columns, p.curToken)
 		p.nextToken()
 
-		if p.checkPeekToken(token.COMMA) {
+		if p.checkCurToken(token.COMMA) {
 			p.nextToken()
 		}
 	}
@@ -216,6 +216,10 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 		return nil, expectedTokenError(token.VALUES)
 	}
 
+	if !p.expectPeekToken(token.LPAREN) {
+		return nil, expectedTokenError(token.LPAREN)
+	}
+
 	p.nextToken()
 	for p.curToken != nil && !p.checkCurToken(token.RPAREN) {
 		expr := p.parseExpression()
@@ -224,7 +228,7 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 		}
 		p.nextToken()
 
-		if p.checkPeekToken(token.COMMA) {
+		if p.checkCurToken(token.COMMA) {
 			p.nextToken()
 		}
 	}
