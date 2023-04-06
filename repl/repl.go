@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"strings"
+	"time"
 )
 
 const PROMPT = "# "
@@ -39,6 +40,7 @@ func Start(input io.Reader, output io.Writer) {
 
 		end := len(program.Statements) - 1
 
+		startTime := time.Now()
 		for i, stmt := range program.Statements {
 			switch st := stmt.(type) {
 			case *ast.CreateTableStatement:
@@ -63,6 +65,10 @@ func Start(input io.Reader, output io.Writer) {
 					printSelectResult(output, res)
 					fmt.Fprintln(output, "ok")
 				}
+			}
+			if i == end {
+				duration := time.Now().Sub(startTime).Seconds()
+				fmt.Fprintf(output, "ok (took %.2fs)\n", duration)
 			}
 		}
 	}
