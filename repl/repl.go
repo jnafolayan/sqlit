@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const PROMPT = "# "
+const PROMPT = "sqlit> "
 
 func Start(input io.Reader, output io.Writer) {
 	scanner := bufio.NewScanner(input)
@@ -41,29 +41,28 @@ func Start(input io.Reader, output io.Writer) {
 		end := len(program.Statements) - 1
 
 		startTime := time.Now()
+	loop:
 		for i, stmt := range program.Statements {
 			switch st := stmt.(type) {
 			case *ast.CreateTableStatement:
 				err := backend.CreateTable(st)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
-				} else if i == end {
-					fmt.Fprintln(output, "ok")
+					break loop
 				}
 			case *ast.InsertStatement:
 				err := backend.Insert(st)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
-				} else if i == end {
-					fmt.Fprintln(output, "ok")
+					break loop
 				}
 			case *ast.SelectStatement:
 				res, err := backend.Select(st)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
+					break loop
 				} else if i == end {
 					printSelectResult(output, res)
-					fmt.Fprintln(output, "ok")
 				}
 			}
 			if i == end {

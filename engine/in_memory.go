@@ -55,6 +55,10 @@ func NewMemoryBackend(existing map[string]*memoryTable) *MemoryBackend {
 func (mb *MemoryBackend) CreateTable(stmt *ast.CreateTableStatement) error {
 	t := &memoryTable{}
 
+	if _, ok := mb.tables[stmt.Table.Literal]; ok {
+		return ErrTableExists
+	}
+
 	for _, col := range stmt.Columns {
 		var colType ColumnType
 		switch col.DataType.Type {

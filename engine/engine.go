@@ -50,6 +50,7 @@ func (r *Result) FetchAssoc() RowAssoc {
 var (
 	ErrInvalidDataType = errors.New("Invalid datatype")
 	ErrTableNotFound   = errors.New("Table not found")
+	ErrTableExists     = errors.New("Table already exists")
 	ErrColumnNotFound  = errors.New("Column not found")
 )
 
