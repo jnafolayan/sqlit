@@ -1,5 +1,10 @@
 package token
 
+import (
+	"reflect"
+	"strings"
+)
+
 type TokenType string
 
 type TokenLocation struct {
@@ -26,6 +31,7 @@ const (
 	INSERT     TokenType = "INSERT"
 	INTO       TokenType = "INTO"
 	VALUES     TokenType = "VALUES"
+	WHERE      TokenType = "WHERE"
 	INT        TokenType = "INT"
 	TEXT       TokenType = "TEXT"
 
@@ -49,12 +55,25 @@ var keywords = map[string]TokenType{
 	"INSERT": INSERT,
 	"INTO":   INTO,
 	"VALUES": VALUES,
+	"WHERE":  WHERE,
 	"INT":    INT,
 	"TEXT":   TEXT,
 }
 
+func init() {
+	// Add lowercase variants of keywords to allow case insensitive matching
+	keys := reflect.ValueOf(keywords).MapKeys()
+	for _, k := range keys {
+		keywords[strings.ToLower(k.String())] = keywords[k.String()]
+	}
+}
+
 func LookupIdentifier(str string) TokenType {
 	if tt, ok := keywords[str]; ok {
+		return tt
+	}
+
+	if tt, ok := keywords[strings.ToLower(str)]; ok {
 		return tt
 	}
 

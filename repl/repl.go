@@ -61,7 +61,10 @@ func Start(input io.Reader, output io.Writer) {
 					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
 					break loop
 				} else if i == end {
-					fmt.Fprintln(output, utils.FormatSelectResult(res))
+					// Print only if result is not empty
+					if len(res.Rows) != 0 {
+						fmt.Fprintln(output, utils.FormatSelectResult(res))
+					}
 				}
 			}
 			if i == end {
