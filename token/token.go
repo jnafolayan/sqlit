@@ -32,10 +32,12 @@ const (
 	INTO       TokenType = "INTO"
 	VALUES     TokenType = "VALUES"
 	WHERE      TokenType = "WHERE"
+	AND        TokenType = "AND"
+	OR         TokenType = "OR"
 	INT        TokenType = "INT"
+	FLOAT      TokenType = "FLOAT"
 	TEXT       TokenType = "TEXT"
 
-	NUMBER TokenType = "NUMBER"
 	STRING TokenType = "STRING"
 
 	// Symbols
@@ -56,7 +58,10 @@ var keywords = map[string]TokenType{
 	"INTO":   INTO,
 	"VALUES": VALUES,
 	"WHERE":  WHERE,
+	"AND":    AND,
+	"OR":     OR,
 	"INT":    INT,
+	"FLOAT":  FLOAT,
 	"TEXT":   TEXT,
 }
 

@@ -6,7 +6,7 @@ import (
 )
 
 func TestLexer(t *testing.T) {
-	input := "SELECT *, name, age FROM table24 44 20.45 'colors' '';"
+	input := "SELECT *, name, age FROM table24 44 20.45 'colors' '' WHERE AND OR;"
 	expected := []struct {
 		tokenType token.TokenType
 		literal   string
@@ -19,10 +19,13 @@ func TestLexer(t *testing.T) {
 		{token.IDENTIFIER, "age"},
 		{token.FROM, "FROM"},
 		{token.IDENTIFIER, "table24"},
-		{token.NUMBER, "44"},
-		{token.NUMBER, "20.45"},
+		{token.INT, "44"},
+		{token.FLOAT, "20.45"},
 		{token.STRING, "colors"},
 		{token.STRING, ""},
+		{token.WHERE, "WHERE"},
+		{token.AND, "AND"},
+		{token.OR, "OR"},
 		{token.SEMICOLON, ";"},
 	}
 
