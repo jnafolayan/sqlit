@@ -35,6 +35,8 @@ func FormatSelectResult(result *engine.Result) string {
 			content := ""
 			if resCol.Type == engine.INT_COLUMN {
 				content = fmt.Sprintf("%d", cell.AsInt())
+			} else if resCol.Type == engine.FLOAT_COLUMN {
+				content = fmt.Sprintf("%f", cell.AsFloat())
 			} else {
 				content = cell.AsText()
 			}
@@ -67,6 +69,8 @@ func getLargestCellSize(column int, result *engine.Result) int {
 		resCol := result.Columns[column]
 		if resCol.Type == engine.INT_COLUMN {
 			content = fmt.Sprintf("%d", row[column].AsInt())
+		} else if resCol.Type == engine.FLOAT_COLUMN {
+			content = fmt.Sprintf("%f", row[column].AsFloat())
 		} else {
 			content = row[column].AsText()
 		}

@@ -268,6 +268,9 @@ func (p *Parser) parseExpression() ast.Expression {
 	case token.INT:
 		v, _ := strconv.ParseInt(p.curToken.Literal, 10, 64)
 		return &ast.IntegerLiteral{Token: p.curToken, Value: v}
+	case token.FLOAT:
+		v, _ := strconv.ParseFloat(p.curToken.Literal, 64)
+		return &ast.FloatLiteral{Token: p.curToken, Value: v}
 	case token.STRING:
 		return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 	default:

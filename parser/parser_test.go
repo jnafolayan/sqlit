@@ -150,7 +150,7 @@ func TestParseInsertStatement(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		testName := fmt.Sprintf("CREATE_%d", i)
+		testName := fmt.Sprintf("INSERT_%d", i)
 		t.Run(testName, func(sub *testing.T) {
 			l := lexer.New(tt.input)
 			p := New(l)

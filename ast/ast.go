@@ -14,6 +14,7 @@ const (
 	INSERT       NodeType = "INSERT"
 
 	INTEGER NodeType = "INTEGER"
+	FLOAT   NodeType = "FLOAT"
 	STRING  NodeType = "STRING"
 )
 
@@ -107,6 +108,17 @@ func (il *IntegerLiteral) expressionNode() {}
 func (il *IntegerLiteral) Type() NodeType  { return INTEGER }
 func (il *IntegerLiteral) String() string {
 	return fmt.Sprintf("%d", il.Value)
+}
+
+type FloatLiteral struct {
+	Token *token.Token
+	Value float64
+}
+
+func (fl *FloatLiteral) expressionNode() {}
+func (fl *FloatLiteral) Type() NodeType  { return FLOAT }
+func (fl *FloatLiteral) String() string {
+	return fmt.Sprintf("%f", fl.Value)
 }
 
 type StringLiteral struct {

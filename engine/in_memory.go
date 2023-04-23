@@ -23,6 +23,15 @@ func (mc memoryCell) AsInt() int64 {
 	return i
 }
 
+func (mc memoryCell) AsFloat() float64 {
+	var f float64
+	err := binary.Read(bytes.NewBuffer(mc), binary.BigEndian, &f)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
 type tableColumn struct {
 	columnType ColumnType
 	name       string
@@ -68,6 +77,8 @@ func (mb *MemoryBackend) CreateTable(stmt *ast.CreateTableStatement) error {
 			colType = TEXT_COLUMN
 		case token.INT:
 			colType = INT_COLUMN
+		case token.FLOAT:
+			colType = FLOAT_COLUMN
 		default:
 			return ErrInvalidDataType
 		}
@@ -116,6 +127,19 @@ func (mb *MemoryBackend) Insert(stmt *ast.InsertStatement) error {
 
 			buf := new(bytes.Buffer)
 			err = binary.Write(buf, binary.BigEndian, i)
+			if err != nil {
+				panic(err)
+			}
+
+			cellValue = buf.Bytes()
+		case FLOAT_COLUMN:
+			f, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				return ErrInvalidDataType
+			}
+
+			buf := new(bytes.Buffer)
+			err = binary.Write(buf, binary.BigEndian, f)
 			if err != nil {
 				panic(err)
 			}

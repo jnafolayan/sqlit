@@ -9,13 +9,15 @@ import (
 type ColumnType string
 
 const (
-	INT_COLUMN  ColumnType = "INT"
-	TEXT_COLUMN ColumnType = "TEXT"
+	INT_COLUMN   ColumnType = "INT"
+	FLOAT_COLUMN ColumnType = "FLOAT"
+	TEXT_COLUMN  ColumnType = "TEXT"
 )
 
 type Cell interface {
 	AsText() string
 	AsInt() int64
+	AsFloat() float64
 }
 
 type RowAssoc map[string]Cell

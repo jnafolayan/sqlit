@@ -8,24 +8,24 @@ import (
 )
 
 func TestMemoryBackend(t *testing.T) {
-	testStatement(t, "CREATE TABLE people (name TEXT, age INT)", func(tt *testing.T, i interface{}, err error) {
+	testStatement(t, "CREATE TABLE people (name TEXT, age INT, balance FLOAT)", func(tt *testing.T, i interface{}, err error) {
 		if err != nil {
-			tt.Fatalf("error creating table: %s", err)
+			t.Fatalf("error creating table: %s", err)
 		}
 	})
-	testStatement(t, "INSERT INTO people (name, age) VALUES ('John', 40)", func(tt *testing.T, i interface{}, err error) {
+	testStatement(t, "INSERT INTO people (name, age, balance) VALUES ('John', 40, 0.5)", func(tt *testing.T, i interface{}, err error) {
 		if err != nil {
-			tt.Fatalf("error inserting into table: %s", err)
+			t.Fatalf("error inserting into table: %s", err)
 		}
 	})
 	testStatement(t, "INSERT INTO people (name, age) VALUES ('Julia', 30)", func(tt *testing.T, i interface{}, err error) {
 		if err != nil {
-			tt.Fatalf("error inserting into table: %s", err)
+			t.Fatalf("error inserting into table: %s", err)
 		}
 	})
-	testStatement(t, "SELECT name, age FROM people", func(tt *testing.T, result interface{}, err error) {
+	testStatement(t, "SELECT name, age, balance FROM people", func(tt *testing.T, result interface{}, err error) {
 		if err != nil {
-			tt.Fatalf("error selecting table: %s", err)
+			t.Fatalf("error selecting table: %s", err)
 		}
 
 		res, ok := result.(*Result)
@@ -42,6 +42,10 @@ func TestMemoryBackend(t *testing.T) {
 		if john["age"].AsInt() != 40 {
 			tt.Errorf("expected 40, got %d", john["age"])
 		}
+		if john["balance"].AsFloat() != 0.5 {
+			tt.Errorf("expected 0.5, got %s", john["balance"].AsText())
+		}
+
 		if julia["name"].AsText() != "Julia" {
 			tt.Errorf("expected 'Julia', got %q", julia["name"])
 		}
@@ -59,7 +63,7 @@ func testStatement(t *testing.T, stmt string, callback func(*testing.T, interfac
 		p := parser.New(l)
 		program, err := p.Parse()
 		if err != nil {
-			tt.Fatalf("error parsing statement: %s", err)
+			t.Fatalf("error parsing statement: %s", err)
 		}
 
 		stmt := program.Statements[0]
