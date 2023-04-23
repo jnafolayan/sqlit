@@ -33,18 +33,20 @@ type memoryTable struct {
 	rows    [][]memoryCell
 }
 
-func NewMemoryBackendTable() map[string]*memoryTable {
-	return map[string]*memoryTable{}
+type MemoryTables map[string]*memoryTable
+
+func NewMemoryBackendTables() MemoryTables {
+	return MemoryTables{}
 }
 
 type MemoryBackend struct {
-	tables map[string]*memoryTable
+	tables MemoryTables
 }
 
-func NewMemoryBackend(existing map[string]*memoryTable) *MemoryBackend {
+func NewMemoryBackend(existing MemoryTables) *MemoryBackend {
 	tables := existing
 	if existing == nil {
-		tables = NewMemoryBackendTable()
+		tables = NewMemoryBackendTables()
 	}
 
 	return &MemoryBackend{
@@ -134,6 +136,8 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 		return nil, ErrTableNotFound
 	}
 
+	colNameToIdx := generateColNameToIndexMap(t.columns)
+
 	resultRows := [][]Cell{}
 	// Set of columns requested
 	columnsMap := map[string]*ResultColumn{}
@@ -141,10 +145,6 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 	for _, col := range stmt.Columns {
 		var colType ColumnType
 		switch col.Type {
-		case token.IDENTIFIER:
-			colType = TEXT_COLUMN
-		case token.INT:
-			colType = INT_COLUMN
 		case token.ASTERISK:
 			for _, c := range t.columns {
 				columnsMap[c.name] = &ResultColumn{
@@ -154,7 +154,12 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 			}
 			continue
 		default:
-			return nil, ErrInvalidDataType
+			idx, ok := colNameToIdx[col.Literal]
+			if !ok {
+				return nil, ErrColumnNotFound
+			}
+
+			colType = t.columns[idx].columnType
 		}
 
 		columnsMap[col.Literal] = &ResultColumn{
@@ -168,7 +173,6 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 		columns = append(columns, v)
 	}
 
-	colNameToIdx := generateColNameToIndexMap(t.columns)
 	for _, row := range t.rows {
 		res := []Cell{}
 		for _, col := range columns {

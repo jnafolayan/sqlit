@@ -8,9 +8,8 @@ import (
 	"jnafolayan/sql-db/engine"
 	"jnafolayan/sql-db/lexer"
 	"jnafolayan/sql-db/parser"
-	"math"
+	"jnafolayan/sql-db/utils"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -62,7 +61,7 @@ func Start(input io.Reader, output io.Writer) {
 					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
 					break loop
 				} else if i == end {
-					printSelectResult(output, res)
+					fmt.Fprintln(output, utils.FormatSelectResult(res))
 				}
 			}
 			if i == end {
@@ -71,69 +70,4 @@ func Start(input io.Reader, output io.Writer) {
 			}
 		}
 	}
-}
-
-func printSelectResult(output io.Writer, result *engine.Result) {
-	cellSizes := map[int]int{}
-	for i := range result.Columns {
-		cellSizes[i] = getLargestCellSize(i, result) + 2
-	}
-
-	// print header
-	var header strings.Builder
-	for i, col := range result.Columns {
-		if i == 0 {
-			header.WriteString("|")
-		}
-		header.WriteString(alignText(col.Name, cellSizes[i], " "))
-		header.WriteString("|")
-	}
-
-	underline := strings.Repeat("=", header.Len()+5)
-
-	fmt.Fprintln(output, header.String())
-	fmt.Fprintln(output, underline)
-
-	for _, row := range result.Rows {
-		var rowBuilder strings.Builder
-		for i, cell := range row {
-			resCol := result.Columns[i]
-			content := ""
-			if resCol.Type == engine.INT_COLUMN {
-				content = fmt.Sprintf("%d", cell.AsInt())
-			} else {
-				content = cell.AsText()
-			}
-
-			if i == 0 {
-				rowBuilder.WriteString("|")
-			}
-			rowBuilder.WriteString(alignText(content, cellSizes[i], " "))
-			rowBuilder.WriteString("|")
-		}
-		fmt.Fprintln(output, rowBuilder.String())
-	}
-}
-
-func alignText(str string, length int, prefix string) string {
-	res := str
-	if len(res) < length {
-		res = fmt.Sprintf(" %s%s", res, strings.Repeat(prefix, length-len(res)))
-	}
-	return res
-}
-
-func getLargestCellSize(column int, result *engine.Result) int {
-	largest := 0.
-	for _, row := range result.Rows {
-		content := ""
-		resCol := result.Columns[column]
-		if resCol.Type == engine.INT_COLUMN {
-			content = fmt.Sprintf("%d", row[column].AsInt())
-		} else {
-			content = row[column].AsText()
-		}
-		largest = math.Max(largest, float64(len(content)))
-	}
-	return int(largest)
 }

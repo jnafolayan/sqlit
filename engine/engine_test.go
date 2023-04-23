@@ -51,7 +51,7 @@ func TestMemoryBackend(t *testing.T) {
 	})
 }
 
-var testTable = NewMemoryBackendTable()
+var testTable = NewMemoryBackendTables()
 
 func testStatement(t *testing.T, stmt string, callback func(*testing.T, interface{}, error)) {
 	t.Run(stmt, func(tt *testing.T) {
