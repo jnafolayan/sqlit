@@ -11,3 +11,4 @@ func expectedTokenError(expected token.TokenType) error {
 }
 
 var ErrEmptyColumnsList = errors.New("must specify a column name")
+var ErrEmptyColumnDefinitions = errors.New("must specify column definitions")

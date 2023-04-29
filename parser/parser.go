@@ -7,25 +7,99 @@ import (
 	"jnafolayan/sql-db/lexer"
 	"jnafolayan/sql-db/lib"
 	"jnafolayan/sql-db/token"
-	"strconv"
 )
+
+type OperatorPrecedence int
+
+const (
+	LOWEST OperatorPrecedence = iota
+	ASSIGN
+	AND
+	OR
+	EQUALS
+	LT_GT
+	SUM
+	PRODUCT
+	PREFIX
+	INDEX
+	CALL
+)
+
+var precedences = map[token.TokenType]OperatorPrecedence{
+	token.EQ:   EQUALS,
+	token.N_EQ: EQUALS,
+	token.LT:   LT_GT,
+	token.GT:   LT_GT,
+	token.AND:  AND,
+	token.OR:   OR,
+}
+
+func getTokenPrecedence(tokenType token.TokenType) OperatorPrecedence {
+	op, ok := precedences[tokenType]
+	if !ok {
+		return LOWEST
+	}
+	return op
+}
 
 type Parser struct {
 	lexer             *lexer.Lexer
 	it                *lib.Iterator[*token.Token]
 	curToken          *token.Token
+	peekToken         *token.Token
 	OmitErrorLocation bool
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
-	return &Parser{
+	p := &Parser{
 		lexer:             l,
 		OmitErrorLocation: false,
+
+		prefixParseFns: map[token.TokenType]prefixParseFn{},
+		infixParseFns:  map[token.TokenType]infixParseFn{},
 	}
+
+	p.registerPrefixFn(token.INT, parseIntegerLiteral)
+	p.registerPrefixFn(token.FLOAT, parseFloatLiteral)
+	p.registerPrefixFn(token.STRING, parseStringLiteral)
+
+	p.registerInfixFn(token.EQ, parseInfixExpression)
+	p.registerInfixFn(token.N_EQ, parseInfixExpression)
+	p.registerInfixFn(token.LT, parseInfixExpression)
+	p.registerInfixFn(token.GT, parseInfixExpression)
+	p.registerInfixFn(token.AND, parseInfixExpression)
+	p.registerInfixFn(token.OR, parseInfixExpression)
+
+	return p
+}
+
+func (p *Parser) registerPrefixFn(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfixFn(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+func (p *Parser) getPeekTokenPrecedence() OperatorPrecedence {
+	peek := p.it.Peek()
+	if peek == nil {
+		return LOWEST
+	}
+
+	return getTokenPrecedence(peek.Type)
+}
+
+func (p *Parser) getCurTokenPrecedence() OperatorPrecedence {
+	return getTokenPrecedence(p.curToken.Type)
 }
 
 func (p *Parser) nextToken() *token.Token {
 	p.curToken = p.it.Next()
+	p.peekToken = p.it.Peek()
 	return p.curToken
 }
 
@@ -130,6 +204,19 @@ func (p *Parser) parseSelectStatement() (ast.Statement, error) {
 
 	stmt.Table = p.curToken
 
+	if p.expectPeekToken(token.WHERE) {
+		// move to where
+		p.nextToken()
+		// move to next token
+		p.nextToken()
+		expr, err := p.parseExpression(LOWEST)
+		if err != nil {
+			return nil, err
+		}
+
+		stmt.Predicate = expr
+	}
+
 	if p.checkPeekToken(token.SEMICOLON) {
 		p.nextToken()
 	}
@@ -183,6 +270,10 @@ func (p *Parser) parseCreateTableStatement() (ast.Statement, error) {
 		if !p.checkCurToken(token.RPAREN) {
 			return nil, expectedTokenError(token.RPAREN)
 		}
+	}
+
+	if len(stmt.Columns) == 0 {
+		return nil, ErrEmptyColumnDefinitions
 	}
 
 	if p.checkPeekToken(token.SEMICOLON) {
@@ -240,10 +331,12 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 
 	p.nextToken()
 	for p.curToken != nil && !p.checkCurToken(token.RPAREN) {
-		expr := p.parseExpression()
-		if expr != nil {
-			stmt.Values = append(stmt.Values, expr)
+		expr, err := p.parseExpression(LOWEST)
+		if err != nil {
+			return nil, err
 		}
+
+		stmt.Values = append(stmt.Values, expr)
 		p.nextToken()
 
 		if p.checkCurToken(token.COMMA) {
@@ -262,18 +355,30 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 	return stmt, nil
 }
 
-func (p *Parser) parseExpression() ast.Expression {
-	// TODO(jnafolayan): return complex expressions
-	switch p.curToken.Type {
-	case token.INT:
-		v, _ := strconv.ParseInt(p.curToken.Literal, 10, 64)
-		return &ast.IntegerLiteral{Token: p.curToken, Value: v}
-	case token.FLOAT:
-		v, _ := strconv.ParseFloat(p.curToken.Literal, 64)
-		return &ast.FloatLiteral{Token: p.curToken, Value: v}
-	case token.STRING:
-		return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
-	default:
-		return nil
+func (p *Parser) parseExpression(precedence OperatorPrecedence) (ast.Expression, error) {
+	tok := p.curToken
+	prefixFn, ok := p.prefixParseFns[tok.Type]
+	if !ok {
+		return nil, fmt.Errorf("no prefix parse function for %s", tok.Type)
 	}
+
+	leftExpr, err := prefixFn(p)
+	if err != nil {
+		return nil, err
+	}
+
+	for !p.checkPeekToken(token.SEMICOLON) && precedence < p.getPeekTokenPrecedence() {
+		infixFn, ok := p.infixParseFns[p.peekToken.Type]
+		if !ok {
+			return nil, fmt.Errorf("no infix parse function for %s", p.peekToken.Literal)
+		}
+
+		p.nextToken()
+		leftExpr, err = infixFn(p, leftExpr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return leftExpr, nil
 }

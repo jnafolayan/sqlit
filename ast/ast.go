@@ -16,6 +16,8 @@ const (
 	INTEGER NodeType = "INTEGER"
 	FLOAT   NodeType = "FLOAT"
 	STRING  NodeType = "STRING"
+
+	INFIX_EXPRESSION NodeType = "INFIX_EXPRESSION"
 )
 
 type Program struct {
@@ -35,8 +37,9 @@ type Expression interface {
 }
 
 type SelectStatement struct {
-	Table   *token.Token
-	Columns []*token.Token
+	Table     *token.Token
+	Columns   []*token.Token
+	Predicate Expression
 }
 
 func (ss *SelectStatement) statementNode() {}
@@ -48,7 +51,13 @@ func (ss *SelectStatement) String() string {
 	}
 
 	cols := strings.Join(columns, ", ")
-	return fmt.Sprintf("SELECT %s FROM %s", cols, ss.Table.Literal)
+
+	predicate := ""
+	if ss.Predicate != nil {
+		predicate = fmt.Sprintf(" WHERE %s", ss.Predicate.String())
+	}
+
+	return fmt.Sprintf("SELECT %s FROM %s%s", cols, ss.Table.Literal, predicate)
 }
 
 type CreateTableStatement struct {
@@ -130,4 +139,17 @@ func (sl *StringLiteral) expressionNode() {}
 func (sl *StringLiteral) Type() NodeType  { return STRING }
 func (sl *StringLiteral) String() string {
 	return sl.Value
+}
+
+type InfixExpression struct {
+	Token    *token.Token
+	Left     Expression
+	Operator string
+	Right    Expression
+}
+
+func (ie *InfixExpression) expressionNode() {}
+func (ie *InfixExpression) Type() NodeType  { return INFIX_EXPRESSION }
+func (ie *InfixExpression) String() string {
+	return fmt.Sprintf("%s %s %s", ie.Left.String(), ie.Operator, ie.Right.String())
 }
