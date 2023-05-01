@@ -55,6 +55,15 @@ func (l *Lexer) readChar() {
 	}
 }
 
+func (l *Lexer) peekChar() byte {
+	p := l.cursor.position + 1
+	if p >= len(l.source) {
+		return 0
+	} else {
+		return l.source[p]
+	}
+}
+
 func (l *Lexer) Tokenize() []*token.Token {
 	var tokens []*token.Token
 
@@ -69,6 +78,17 @@ func (l *Lexer) Tokenize() []*token.Token {
 		switch l.cursor.char {
 		case ';':
 			tokens = append(tokens, createToken(l.cursor, token.SEMICOLON))
+		case '<':
+			tokens = append(tokens, createToken(l.cursor, token.LT))
+		case '>':
+			tokens = append(tokens, createToken(l.cursor, token.GT))
+		case '=':
+			tokens = append(tokens, createToken(l.cursor, token.EQ))
+		case '!':
+			if l.peekChar() == '=' {
+				tokens = append(tokens, createToken(l.cursor, token.N_EQ))
+				l.readChar()
+			}
 		case '*':
 			tokens = append(tokens, createToken(l.cursor, token.ASTERISK))
 		case ',':

@@ -199,6 +199,12 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 
 	for _, row := range t.rows {
 		res := []Cell{}
+		if stmt.Predicate != nil {
+			if !filterRow(row, t.columns, colNameToIdx, stmt.Predicate) {
+				continue
+			}
+		}
+
 		for _, col := range columns {
 			colIdx, ok := colNameToIdx[col.Name]
 			if !ok {
@@ -223,4 +229,44 @@ func generateColNameToIndexMap(columns []*tableColumn) map[string]int {
 		colNameToIdx[col.name] = i
 	}
 	return colNameToIdx
+}
+
+func filterRow(row []memoryCell, columns []*tableColumn, colNameToIdx map[string]int, predicate ast.Expression) bool {
+	scope := NewScope()
+	for _, col := range columns {
+		colIdx, ok := colNameToIdx[col.name]
+		if !ok {
+			continue
+		}
+		switch col.columnType {
+		case INT_COLUMN:
+			scope.SetVar(col.name, &ast.IntegerLiteral{Value: row[colIdx].AsInt()})
+		case FLOAT_COLUMN:
+			scope.SetVar(col.name, &ast.FloatLiteral{Value: row[colIdx].AsFloat()})
+		case TEXT_COLUMN:
+			scope.SetVar(col.name, &ast.StringLiteral{Value: row[colIdx].AsText()})
+		}
+	}
+
+	expr, err := EvalExpression(predicate, scope)
+	if err != nil {
+		return false
+	}
+
+	if expr.Type() == ast.BOOLEAN {
+		return expr.(*ast.Boolean).Value
+	}
+
+	// Check if the result is truthy
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		return e.Value != 0
+	case *ast.FloatLiteral:
+		return e.Value != 0
+	case *ast.StringLiteral:
+		return e.Value != ""
+	}
+
+	// Finally return false
+	return false
 }

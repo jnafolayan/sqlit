@@ -8,6 +8,10 @@ import (
 
 type prefixParseFn func(*Parser) (ast.Expression, error)
 
+func parseIdentifier(p *Parser) (ast.Expression, error) {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
+}
+
 func parseIntegerLiteral(p *Parser) (ast.Expression, error) {
 	v, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {

@@ -47,10 +47,12 @@ const (
 	LPAREN    TokenType = "("
 	RPAREN    TokenType = ")"
 
-	EQ   TokenType = "="
-	N_EQ TokenType = "!="
-	GT   TokenType = ">"
-	LT   TokenType = "<"
+	PLUS  TokenType = "+"
+	MINUS TokenType = "-"
+	EQ    TokenType = "="
+	N_EQ  TokenType = "!="
+	GT    TokenType = ">"
+	LT    TokenType = "<"
 )
 
 var keywords = map[string]TokenType{

@@ -13,15 +13,22 @@ const (
 	CREATE_TABLE NodeType = "CREATE_TABLE"
 	INSERT       NodeType = "INSERT"
 
-	INTEGER NodeType = "INTEGER"
-	FLOAT   NodeType = "FLOAT"
-	STRING  NodeType = "STRING"
+	INTEGER    NodeType = "INTEGER"
+	FLOAT      NodeType = "FLOAT"
+	STRING     NodeType = "STRING"
+	BOOLEAN    NodeType = "BOOLEAN"
+	IDENTIFIER NodeType = "IDENTIFIER"
 
 	INFIX_EXPRESSION NodeType = "INFIX_EXPRESSION"
 )
 
 type Program struct {
 	Statements []Statement
+}
+
+type Node interface {
+	Type() NodeType
+	String() string
 }
 
 type Statement interface {
@@ -139,6 +146,28 @@ func (sl *StringLiteral) expressionNode() {}
 func (sl *StringLiteral) Type() NodeType  { return STRING }
 func (sl *StringLiteral) String() string {
 	return sl.Value
+}
+
+type Identifier struct {
+	Token *token.Token
+	Value string
+}
+
+func (i *Identifier) expressionNode() {}
+func (i *Identifier) Type() NodeType  { return IDENTIFIER }
+func (i *Identifier) String() string {
+	return i.Value
+}
+
+type Boolean struct {
+	Token *token.Token
+	Value bool
+}
+
+func (b *Boolean) expressionNode() {}
+func (b *Boolean) Type() NodeType  { return BOOLEAN }
+func (b *Boolean) String() string {
+	return fmt.Sprintf("%v", b.Value)
 }
 
 type InfixExpression struct {

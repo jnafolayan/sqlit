@@ -65,6 +65,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefixFn(token.INT, parseIntegerLiteral)
 	p.registerPrefixFn(token.FLOAT, parseFloatLiteral)
 	p.registerPrefixFn(token.STRING, parseStringLiteral)
+	p.registerPrefixFn(token.IDENTIFIER, parseIdentifier)
 
 	p.registerInfixFn(token.EQ, parseInfixExpression)
 	p.registerInfixFn(token.N_EQ, parseInfixExpression)
@@ -85,12 +86,11 @@ func (p *Parser) registerInfixFn(tokenType token.TokenType, fn infixParseFn) {
 }
 
 func (p *Parser) getPeekTokenPrecedence() OperatorPrecedence {
-	peek := p.it.Peek()
-	if peek == nil {
+	if p.peekToken == nil {
 		return LOWEST
 	}
 
-	return getTokenPrecedence(peek.Type)
+	return getTokenPrecedence(p.peekToken.Type)
 }
 
 func (p *Parser) getCurTokenPrecedence() OperatorPrecedence {
@@ -204,11 +204,15 @@ func (p *Parser) parseSelectStatement() (ast.Statement, error) {
 
 	stmt.Table = p.curToken
 
-	if p.expectPeekToken(token.WHERE) {
+	if p.checkPeekToken(token.WHERE) {
 		// move to where
 		p.nextToken()
 		// move to next token
 		p.nextToken()
+		if p.curToken == nil {
+			return nil, errors.New("expected WHERE conditions")
+		}
+
 		expr, err := p.parseExpression(LOWEST)
 		if err != nil {
 			return nil, err
@@ -367,7 +371,7 @@ func (p *Parser) parseExpression(precedence OperatorPrecedence) (ast.Expression,
 		return nil, err
 	}
 
-	for !p.checkPeekToken(token.SEMICOLON) && precedence < p.getPeekTokenPrecedence() {
+	for !p.checkPeekToken(token.SEMICOLON) && !p.checkPeekToken(token.EOF) && precedence < p.getPeekTokenPrecedence() {
 		infixFn, ok := p.infixParseFns[p.peekToken.Type]
 		if !ok {
 			return nil, fmt.Errorf("no infix parse function for %s", p.peekToken.Literal)
