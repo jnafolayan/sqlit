@@ -1,7 +1,6 @@
 package token
 
 import (
-	"reflect"
 	"strings"
 )
 
@@ -74,18 +73,19 @@ var keywords = map[string]TokenType{
 
 func init() {
 	// Add lowercase variants of keywords to allow case insensitive matching
-	keys := reflect.ValueOf(keywords).MapKeys()
+	keys := []string{}
+	for k := range keywords {
+		keys = append(keys, k)
+	}
+	// TODO: Doesn't seem to work in WASM. Too lazy to investigate rn
+	// keys := reflect.ValueOf(keywords).MapKeys()
 	for _, k := range keys {
-		keywords[strings.ToLower(k.String())] = keywords[k.String()]
+		keywords[strings.ToLower(k)] = keywords[k]
 	}
 }
 
 func LookupIdentifier(str string) TokenType {
 	if tt, ok := keywords[str]; ok {
-		return tt
-	}
-
-	if tt, ok := keywords[strings.ToLower(str)]; ok {
 		return tt
 	}
 

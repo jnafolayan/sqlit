@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"jnafolayan/sql-db/ast"
+	"strings"
 )
 
 type infixEvalFn func(ast.Expression, string, ast.Expression) (ast.Expression, error)
@@ -13,6 +14,7 @@ var infixEvalFns map[string]infixEvalFn
 func init() {
 	infixEvalFns = map[string]infixEvalFn{}
 
+	// INTEGER + INTEGER
 	registerInfixEvalFn(ast.INTEGER, "+", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -21,6 +23,7 @@ func init() {
 		}, nil
 	})
 
+	// INTEGER - INTEGER
 	registerInfixEvalFn(ast.INTEGER, "-", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -29,6 +32,7 @@ func init() {
 		}, nil
 	})
 
+	// INTEGER = INTEGER
 	registerInfixEvalFn(ast.INTEGER, "=", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -37,6 +41,25 @@ func init() {
 		}, nil
 	})
 
+	// FLOAT + FLOAT
+	registerInfixEvalFn(ast.FLOAT, "+", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
+		a, _ := e1.(*ast.FloatLiteral)
+		b, _ := e2.(*ast.FloatLiteral)
+		return &ast.FloatLiteral{
+			Value: a.Value + b.Value,
+		}, nil
+	})
+
+	// FLOAT - FLOAT
+	registerInfixEvalFn(ast.FLOAT, "-", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
+		a, _ := e1.(*ast.FloatLiteral)
+		b, _ := e2.(*ast.FloatLiteral)
+		return &ast.FloatLiteral{
+			Value: a.Value - b.Value,
+		}, nil
+	})
+
+	// FLOAT = FLOAT
 	registerInfixEvalFn(ast.FLOAT, "=", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.FloatLiteral)
 		b, _ := e2.(*ast.FloatLiteral)
@@ -45,6 +68,7 @@ func init() {
 		}, nil
 	})
 
+	// STRING = STRING
 	registerInfixEvalFn(ast.STRING, "=", ast.STRING, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.StringLiteral)
 		b, _ := e2.(*ast.StringLiteral)
@@ -53,6 +77,7 @@ func init() {
 		}, nil
 	})
 
+	// INTEGER != INTEGER
 	registerInfixEvalFn(ast.INTEGER, "!=", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -61,6 +86,7 @@ func init() {
 		}, nil
 	})
 
+	// FLOAT != FLOAT
 	registerInfixEvalFn(ast.FLOAT, "!=", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.FloatLiteral)
 		b, _ := e2.(*ast.FloatLiteral)
@@ -69,6 +95,7 @@ func init() {
 		}, nil
 	})
 
+	// STRING != STRING
 	registerInfixEvalFn(ast.STRING, "!=", ast.STRING, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.StringLiteral)
 		b, _ := e2.(*ast.StringLiteral)
@@ -77,6 +104,7 @@ func init() {
 		}, nil
 	})
 
+	// INTEGER < INTEGER
 	registerInfixEvalFn(ast.INTEGER, "<", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -85,6 +113,7 @@ func init() {
 		}, nil
 	})
 
+	// FLOAT < FLOAT
 	registerInfixEvalFn(ast.FLOAT, "<", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.FloatLiteral)
 		b, _ := e2.(*ast.FloatLiteral)
@@ -93,6 +122,7 @@ func init() {
 		}, nil
 	})
 
+	// INTEGER > INTEGER
 	registerInfixEvalFn(ast.INTEGER, ">", ast.INTEGER, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.IntegerLiteral)
 		b, _ := e2.(*ast.IntegerLiteral)
@@ -101,11 +131,30 @@ func init() {
 		}, nil
 	})
 
+	// FLOAT > FLOAT
 	registerInfixEvalFn(ast.FLOAT, ">", ast.FLOAT, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
 		a, _ := e1.(*ast.FloatLiteral)
 		b, _ := e2.(*ast.FloatLiteral)
 		return &ast.Boolean{
 			Value: a.Value > b.Value,
+		}, nil
+	})
+
+	// BOOLEAN && BOOLEAN
+	registerInfixEvalFn(ast.BOOLEAN, "AND", ast.BOOLEAN, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
+		a, _ := e1.(*ast.Boolean)
+		b, _ := e2.(*ast.Boolean)
+		return &ast.Boolean{
+			Value: a.Value && b.Value,
+		}, nil
+	})
+
+	// BOOLEAN || BOOLEAN
+	registerInfixEvalFn(ast.BOOLEAN, "OR", ast.BOOLEAN, func(e1 ast.Expression, s string, e2 ast.Expression) (ast.Expression, error) {
+		a, _ := e1.(*ast.Boolean)
+		b, _ := e2.(*ast.Boolean)
+		return &ast.Boolean{
+			Value: a.Value || b.Value,
 		}, nil
 	})
 }
@@ -177,4 +226,6 @@ func toFnString(left ast.Expression, op string, right ast.Expression) string {
 
 func registerInfixEvalFn(left ast.NodeType, op string, right ast.NodeType, fn infixEvalFn) {
 	infixEvalFns[fmt.Sprintf("%s_%s_%s", left, op, right)] = fn
+	// Add an evaluator for lowercase operators too
+	infixEvalFns[fmt.Sprintf("%s_%s_%s", left, strings.ToLower(op), right)] = fn
 }
