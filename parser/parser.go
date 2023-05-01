@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"jnafolayan/sql-db/ast"
+	"jnafolayan/sql-db/evaluator"
 	"jnafolayan/sql-db/lexer"
 	"jnafolayan/sql-db/lib"
 	"jnafolayan/sql-db/token"
@@ -26,12 +27,14 @@ const (
 )
 
 var precedences = map[token.TokenType]OperatorPrecedence{
-	token.EQ:   EQUALS,
-	token.N_EQ: EQUALS,
-	token.LT:   LT_GT,
-	token.GT:   LT_GT,
-	token.AND:  AND,
-	token.OR:   OR,
+	token.EQ:    EQUALS,
+	token.N_EQ:  EQUALS,
+	token.LT:    LT_GT,
+	token.GT:    LT_GT,
+	token.PLUS:  SUM,
+	token.MINUS: SUM,
+	token.AND:   AND,
+	token.OR:    OR,
 }
 
 func getTokenPrecedence(tokenType token.TokenType) OperatorPrecedence {
@@ -67,6 +70,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefixFn(token.STRING, parseStringLiteral)
 	p.registerPrefixFn(token.IDENTIFIER, parseIdentifier)
 
+	p.registerInfixFn(token.PLUS, parseInfixExpression)
+	p.registerInfixFn(token.MINUS, parseInfixExpression)
 	p.registerInfixFn(token.EQ, parseInfixExpression)
 	p.registerInfixFn(token.N_EQ, parseInfixExpression)
 	p.registerInfixFn(token.LT, parseInfixExpression)
@@ -340,7 +345,12 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 			return nil, err
 		}
 
-		stmt.Values = append(stmt.Values, expr)
+		evaluatedExpr, err := evaluator.EvalExpression(expr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		stmt.Values = append(stmt.Values, evaluatedExpr)
 		p.nextToken()
 
 		if p.checkCurToken(token.COMMA) {

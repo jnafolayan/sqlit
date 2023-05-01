@@ -78,6 +78,10 @@ func (l *Lexer) Tokenize() []*token.Token {
 		switch l.cursor.char {
 		case ';':
 			tokens = append(tokens, createToken(l.cursor, token.SEMICOLON))
+		case '+':
+			tokens = append(tokens, createToken(l.cursor, token.PLUS))
+		case '-':
+			tokens = append(tokens, createToken(l.cursor, token.MINUS))
 		case '<':
 			tokens = append(tokens, createToken(l.cursor, token.LT))
 		case '>':

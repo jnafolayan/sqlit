@@ -1,4 +1,4 @@
-package engine
+package evaluator
 
 import (
 	"errors"
@@ -192,6 +192,9 @@ func EvalExpression(expr ast.Expression, scope *Scope) (ast.Expression, error) {
 	case *ast.Boolean:
 		return node, nil
 	case *ast.Identifier:
+		if scope == nil {
+			return nil, errors.New("a scope is required")
+		}
 		return scope.GetVar(node.Value), nil
 	case *ast.InfixExpression:
 		left, err := EvalExpression(node.Left, scope)

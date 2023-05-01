@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"jnafolayan/sql-db/ast"
+	"jnafolayan/sql-db/evaluator"
 	"jnafolayan/sql-db/token"
 	"strconv"
 )
@@ -232,7 +233,7 @@ func generateColNameToIndexMap(columns []*tableColumn) map[string]int {
 }
 
 func filterRow(row []memoryCell, columns []*tableColumn, colNameToIdx map[string]int, predicate ast.Expression) bool {
-	scope := NewScope()
+	scope := evaluator.NewScope()
 	for _, col := range columns {
 		colIdx, ok := colNameToIdx[col.name]
 		if !ok {
@@ -248,7 +249,7 @@ func filterRow(row []memoryCell, columns []*tableColumn, colNameToIdx map[string
 		}
 	}
 
-	expr, err := EvalExpression(predicate, scope)
+	expr, err := evaluator.EvalExpression(predicate, scope)
 	if err != nil {
 		return false
 	}
