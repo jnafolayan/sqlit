@@ -87,7 +87,27 @@ loop:
 			} else if i == end {
 				result.WriteString(utils.FormatSelectResult(res))
 			}
+		case *ast.DeleteStatement:
+			res, err := backend.Delete(st)
+			if err != nil {
+				result.WriteString(fmt.Errorf("program error: %s\n", err).Error())
+				break loop
+			} else if i == end {
+				// Print only if result is not empty
+				result.WriteString(fmt.Sprintf("affected rows: %d\n", res.AffectedRows))
+			}
+		case *ast.UpdateStatement:
+			res, err := backend.Update(st)
+			if err != nil {
+				result.WriteString(fmt.Errorf("program error: %s\n", err).Error())
+				break loop
+			} else if i == end {
+				// Print only if result is not empty
+				result.WriteString(fmt.Sprintf("affected rows: %d\n", res.AffectedRows))
+			}
+
 		}
+
 		if i == end {
 			duration := time.Now().Sub(startTime).Seconds()
 			result.WriteString(fmt.Sprintf("ok (took %.2fs)\n", duration))
