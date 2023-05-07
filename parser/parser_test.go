@@ -244,3 +244,49 @@ func TestParseDeleteStatement(t *testing.T) {
 		})
 	}
 }
+
+func TestParseUpdateStatement(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedError  error
+		expectedString string
+	}{
+		{"UPDATE people SET name='Jaden' WHERE age=40", nil, "UPDATE people SET name=Jaden WHERE age=40"},
+	}
+
+	for i, tt := range tests {
+		testName := fmt.Sprintf("UPDATE_%d", i)
+		t.Run(testName, func(sub *testing.T) {
+			l := lexer.New(tt.input)
+			p := New(l)
+			p.OmitErrorLocation = true
+			program, err := p.Parse()
+
+			if err != nil {
+				if tt.expectedError == nil {
+					sub.Fatalf("expected no error, got %q", err)
+				}
+				if !errors.Is(err, tt.expectedError) {
+					sub.Fatalf("expected %q error, got %q", tt.expectedError, err)
+				}
+				return
+			} else if tt.expectedError != nil {
+				sub.Fatalf("expected %v error, got no error", err)
+			}
+
+			if len(program.Statements) != 1 {
+				sub.Fatalf("expected 1 statement, got %d", len(program.Statements))
+			}
+
+			stmt := program.Statements[0]
+			if stmt.Type() != ast.UPDATE {
+				t.Fatalf("expected update statement, got %s", stmt.Type())
+			}
+
+			updateStmt := stmt.(*ast.UpdateStatement)
+			if updateStmt.String() != tt.expectedString {
+				t.Fatalf("expected %q, got %q", tt.expectedString, updateStmt.String())
+			}
+		})
+	}
+}

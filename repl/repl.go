@@ -75,6 +75,15 @@ func Start(input io.Reader, output io.Writer) {
 					// Print only if result is not empty
 					fmt.Fprintf(output, "affected rows: %d\n", res.AffectedRows)
 				}
+			case *ast.UpdateStatement:
+				res, err := backend.Update(st)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "program error: %s\n", err)
+					break loop
+				} else if i == end {
+					// Print only if result is not empty
+					fmt.Fprintf(output, "affected rows: %d\n", res.AffectedRows)
+				}
 			}
 			if i == end {
 				duration := time.Now().Sub(startTime).Seconds()

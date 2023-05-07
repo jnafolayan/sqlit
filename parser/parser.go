@@ -178,6 +178,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parseInsertStatement()
 	case token.DELETE:
 		return p.parseDeleteStatement()
+	case token.UPDATE:
+		return p.parseUpdateStatement()
 	default:
 		return nil, fmt.Errorf("invalid keyword %q", p.curToken.Literal)
 	}
@@ -386,6 +388,58 @@ func (p *Parser) parseDeleteStatement() (ast.Statement, error) {
 	if p.checkPeekToken(token.WHERE) {
 		// move to where
 		p.nextToken()
+		// move to next token
+		p.nextToken()
+		if p.curToken == nil {
+			return nil, errors.New("expected WHERE conditions")
+		}
+
+		expr, err := p.parseExpression(LOWEST)
+		if err != nil {
+			return nil, err
+		}
+
+		stmt.Predicate = expr
+	}
+
+	if p.checkPeekToken(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt, nil
+}
+
+func (p *Parser) parseUpdateStatement() (ast.Statement, error) {
+	stmt := &ast.UpdateStatement{}
+
+	if !p.expectPeekToken(token.IDENTIFIER) {
+		return nil, errors.New("expected table name")
+	}
+	stmt.Table = p.curToken
+
+	if !p.expectPeekToken(token.SET) {
+		return nil, expectedTokenError(token.SET)
+	}
+
+	p.nextToken()
+	for p.checkCurToken(token.IDENTIFIER) {
+		colName := p.curToken
+		if !p.expectPeekToken(token.EQ) {
+			return nil, expectedTokenError(token.EQ)
+		}
+		p.nextToken()
+
+		value := p.curToken
+		p.nextToken()
+
+		stmt.Update = append(stmt.Update, []*token.Token{colName, value})
+
+		if p.checkCurToken(token.COMMA) {
+			p.nextToken()
+		}
+	}
+
+	if p.checkCurToken(token.WHERE) {
 		// move to next token
 		p.nextToken()
 		if p.curToken == nil {

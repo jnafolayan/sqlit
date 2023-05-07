@@ -23,6 +23,7 @@ func TestMemoryBackend(t *testing.T) {
 			t.Fatalf("error inserting into table: %s", err)
 		}
 	})
+
 	testStatement(t, "SELECT name, age, balance FROM people", func(tt *testing.T, result interface{}, err error) {
 		if err != nil {
 			t.Fatalf("error selecting table: %s", err)
@@ -30,7 +31,7 @@ func TestMemoryBackend(t *testing.T) {
 
 		res, ok := result.(*FetchResult)
 		if !ok {
-			tt.Fatalf("expected a table Result, got %T", result)
+			t.Fatalf("expected a table Result, got %T", result)
 		}
 
 		john := res.FetchAssoc()
@@ -53,32 +54,79 @@ func TestMemoryBackend(t *testing.T) {
 			tt.Errorf("expected 30, got %d", julia["age"])
 		}
 	})
+
 	testStatement(t, "DELETE FROM people WHERE age=30", func(tt *testing.T, result interface{}, err error) {
 		if err != nil {
 			t.Fatalf("error deleting rows: %s", err)
 		}
 
-		res, ok := result.(*DeleteResult)
+		res, ok := result.(*UpdateResult)
 		if !ok {
-			tt.Fatalf("expected a DeleteResult, got %T", result)
+			t.Fatalf("expected a UpdateResult, got %T", result)
 		}
 
 		if res.AffectedRows != 1 {
-			t.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
+			tt.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
 		}
 	})
+	// Make sure it's deleted
+	testStatement(t, "SELECT age FROM people WHERE age=30", func(tt *testing.T, result interface{}, err error) {
+		if err != nil {
+			t.Fatalf("error updating rows: %s", err)
+		}
+
+		res, ok := result.(*FetchResult)
+		if !ok {
+			tt.Fatalf("expected a FetchResult, got %T", result)
+		}
+
+		if len(res.Rows) != 0 {
+			tt.Errorf("expected 0 rows, got %d", len(res.Rows))
+		}
+	})
+
+	testStatement(t, "UPDATE people SET age=66 WHERE age=40", func(tt *testing.T, result interface{}, err error) {
+		if err != nil {
+			t.Fatalf("error updating rows: %s", err)
+		}
+
+		res, ok := result.(*UpdateResult)
+		if !ok {
+			t.Fatalf("expected a UpdateResult, got %T", result)
+		}
+
+		if res.AffectedRows != 1 {
+			tt.Errorf("expected 1 row to be updated, got %d", res.AffectedRows)
+		}
+	})
+	// Make sure it updated
+	testStatement(t, "SELECT age FROM people WHERE age=66", func(tt *testing.T, result interface{}, err error) {
+		if err != nil {
+			t.Fatalf("error updating rows: %s", err)
+		}
+
+		res, ok := result.(*FetchResult)
+		if !ok {
+			tt.Fatalf("expected a FetchResult, got %T", result)
+		}
+
+		if len(res.Rows) != 1 {
+			tt.Errorf("expected 1 row, got %d", len(res.Rows))
+		}
+	})
+
 	testStatement(t, "DELETE FROM people", func(tt *testing.T, result interface{}, err error) {
 		if err != nil {
 			t.Fatalf("error deleting rows: %s", err)
 		}
 
-		res, ok := result.(*DeleteResult)
+		res, ok := result.(*UpdateResult)
 		if !ok {
-			tt.Fatalf("expected a DeleteResult, got %T", result)
+			t.Fatalf("expected a UpdateResult, got %T", result)
 		}
 
 		if res.AffectedRows != 1 {
-			t.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
+			tt.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
 		}
 	})
 }
@@ -107,6 +155,9 @@ func testStatement(t *testing.T, stmt string, callback func(*testing.T, interfac
 			callback(tt, res, err)
 		case *ast.DeleteStatement:
 			res, err := engine.Delete(st)
+			callback(tt, res, err)
+		case *ast.UpdateStatement:
+			res, err := engine.Update(st)
 			callback(tt, res, err)
 		}
 	})

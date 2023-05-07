@@ -13,6 +13,7 @@ const (
 	CREATE_TABLE NodeType = "CREATE_TABLE"
 	INSERT       NodeType = "INSERT"
 	DELETE       NodeType = "DELETE"
+	UPDATE       NodeType = "UPDATE"
 
 	INTEGER    NodeType = "INTEGER"
 	FLOAT      NodeType = "FLOAT"
@@ -132,6 +133,29 @@ func (ds *DeleteStatement) String() string {
 	return fmt.Sprintf("DELETE FROM %s%s", ds.Table.Literal, predicate)
 }
 
+type UpdateStatement struct {
+	Table     *token.Token
+	Update    [][]*token.Token
+	Predicate Expression
+}
+
+func (us *UpdateStatement) statementNode() {}
+func (us *UpdateStatement) Type() NodeType { return UPDATE }
+func (us *UpdateStatement) String() string {
+	updates := []string{}
+	for _, col := range us.Update {
+		updates = append(updates, fmt.Sprintf("%s=%s", col[0].Literal, col[1].Literal))
+	}
+
+	predicate := ""
+	if us.Predicate != nil {
+		predicate = fmt.Sprintf(" WHERE %s", us.Predicate.String())
+	}
+
+	ups := strings.Join(updates, ", ")
+	return fmt.Sprintf("UPDATE %s SET %s%s", us.Table.Literal, ups, predicate)
+}
+
 type IntegerLiteral struct {
 	Token *token.Token
 	Value int64
@@ -197,5 +221,5 @@ type InfixExpression struct {
 func (ie *InfixExpression) expressionNode() {}
 func (ie *InfixExpression) Type() NodeType  { return INFIX_EXPRESSION }
 func (ie *InfixExpression) String() string {
-	return fmt.Sprintf("%s %s %s", ie.Left.String(), ie.Operator, ie.Right.String())
+	return fmt.Sprintf("%s%s%s", ie.Left.String(), ie.Operator, ie.Right.String())
 }

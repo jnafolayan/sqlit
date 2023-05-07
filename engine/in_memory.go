@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"jnafolayan/sql-db/ast"
 	"jnafolayan/sql-db/evaluator"
 	"jnafolayan/sql-db/token"
@@ -115,37 +116,9 @@ func (mb *MemoryBackend) Insert(stmt *ast.InsertStatement) error {
 			return ErrColumnNotFound
 		}
 
-		var cellValue memoryCell
-
-		switch t.columns[colIdx].columnType {
-		case TEXT_COLUMN:
-			cellValue = []byte(value)
-		case INT_COLUMN:
-			i, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return ErrInvalidDataType
-			}
-
-			buf := new(bytes.Buffer)
-			err = binary.Write(buf, binary.BigEndian, i)
-			if err != nil {
-				panic(err)
-			}
-
-			cellValue = buf.Bytes()
-		case FLOAT_COLUMN:
-			f, err := strconv.ParseFloat(value, 64)
-			if err != nil {
-				return ErrInvalidDataType
-			}
-
-			buf := new(bytes.Buffer)
-			err = binary.Write(buf, binary.BigEndian, f)
-			if err != nil {
-				panic(err)
-			}
-
-			cellValue = buf.Bytes()
+		cellValue, err := getByteValue(t.columns[colIdx].columnType, value)
+		if err != nil {
+			return err
 		}
 
 		row[colIdx] = cellValue
@@ -224,7 +197,7 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*FetchResult, error)
 	}, nil
 }
 
-func (mb *MemoryBackend) Delete(stmt *ast.DeleteStatement) (*DeleteResult, error) {
+func (mb *MemoryBackend) Delete(stmt *ast.DeleteStatement) (*UpdateResult, error) {
 	t, ok := mb.tables[stmt.Table.Literal]
 	if !ok {
 		return nil, ErrTableNotFound
@@ -244,8 +217,49 @@ func (mb *MemoryBackend) Delete(stmt *ast.DeleteStatement) (*DeleteResult, error
 		i--
 	}
 
-	return &DeleteResult{
+	return &UpdateResult{
 		AffectedRows: startingRows - len(t.rows),
+	}, nil
+}
+
+func (mb *MemoryBackend) Update(stmt *ast.UpdateStatement) (*UpdateResult, error) {
+	t, ok := mb.tables[stmt.Table.Literal]
+	if !ok {
+		return nil, ErrTableNotFound
+	}
+
+	colNameToIdx := generateColNameToIndexMap(t.columns)
+	affectedRows := 0
+
+	for _, row := range t.rows {
+		if stmt.Predicate != nil {
+			if !filterRow(row, t.columns, colNameToIdx, stmt.Predicate) {
+				continue
+			}
+		}
+
+		for _, col := range stmt.Update {
+			colName := col[0].Literal
+			value := col[1].Literal
+			colIdx, ok := colNameToIdx[colName]
+			if !ok {
+				return nil, ErrColumnNotFound
+			}
+
+			fmt.Println(colName, value)
+
+			cellValue, err := getByteValue(t.columns[colIdx].columnType, value)
+			if err != nil {
+				return nil, err
+			}
+
+			row[colIdx] = cellValue
+			affectedRows++
+		}
+	}
+
+	return &UpdateResult{
+		AffectedRows: affectedRows,
 	}, nil
 }
 
@@ -301,4 +315,41 @@ func filterRow(row []memoryCell, columns []*tableColumn, colNameToIdx map[string
 
 	// Finally return false
 	return false
+}
+
+func getByteValue(colType ColumnType, value string) (memoryCell, error) {
+	var cellValue memoryCell
+
+	switch colType {
+	case TEXT_COLUMN:
+		cellValue = []byte(value)
+	case INT_COLUMN:
+		i, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, ErrInvalidDataType
+		}
+
+		buf := new(bytes.Buffer)
+		err = binary.Write(buf, binary.BigEndian, i)
+		if err != nil {
+			panic(err)
+		}
+
+		cellValue = buf.Bytes()
+	case FLOAT_COLUMN:
+		f, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil, ErrInvalidDataType
+		}
+
+		buf := new(bytes.Buffer)
+		err = binary.Write(buf, binary.BigEndian, f)
+		if err != nil {
+			panic(err)
+		}
+
+		cellValue = buf.Bytes()
+	}
+
+	return cellValue, nil
 }

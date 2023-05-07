@@ -49,7 +49,7 @@ func (r *FetchResult) FetchAssoc() RowAssoc {
 	return r.it.Next()
 }
 
-type DeleteResult struct {
+type UpdateResult struct {
 	AffectedRows int
 }
 
