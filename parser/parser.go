@@ -176,6 +176,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parseCreateTableStatement()
 	case token.INSERT:
 		return p.parseInsertStatement()
+	case token.DELETE:
+		return p.parseDeleteStatement()
 	default:
 		return nil, fmt.Errorf("invalid keyword %q", p.curToken.Literal)
 	}
@@ -360,6 +362,42 @@ func (p *Parser) parseInsertStatement() (ast.Statement, error) {
 
 	if len(stmt.Values) != len(stmt.Columns) {
 		return nil, errors.New("number of values must match number of columns")
+	}
+
+	if p.checkPeekToken(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt, nil
+}
+
+func (p *Parser) parseDeleteStatement() (ast.Statement, error) {
+	stmt := &ast.DeleteStatement{}
+
+	if !p.expectPeekToken(token.FROM) {
+		return nil, expectedTokenError(token.FROM)
+	}
+
+	if !p.expectPeekToken(token.IDENTIFIER) {
+		return nil, errors.New("expected table name")
+	}
+	stmt.Table = p.curToken
+
+	if p.checkPeekToken(token.WHERE) {
+		// move to where
+		p.nextToken()
+		// move to next token
+		p.nextToken()
+		if p.curToken == nil {
+			return nil, errors.New("expected WHERE conditions")
+		}
+
+		expr, err := p.parseExpression(LOWEST)
+		if err != nil {
+			return nil, err
+		}
+
+		stmt.Predicate = expr
 	}
 
 	if p.checkPeekToken(token.SEMICOLON) {

@@ -22,6 +22,7 @@ const (
 	EOF     TokenType = "EOF"
 
 	IDENTIFIER TokenType = "identifier"
+	DELETE     TokenType = "DELETE"
 	SELECT     TokenType = "SELECT"
 	FROM       TokenType = "FROM"
 	AS         TokenType = "AS"
@@ -55,6 +56,7 @@ const (
 )
 
 var keywords = map[string]TokenType{
+	"DELETE": DELETE,
 	"SELECT": SELECT,
 	"FROM":   FROM,
 	"AS":     AS,

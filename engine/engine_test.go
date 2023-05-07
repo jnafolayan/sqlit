@@ -28,9 +28,9 @@ func TestMemoryBackend(t *testing.T) {
 			t.Fatalf("error selecting table: %s", err)
 		}
 
-		res, ok := result.(*Result)
+		res, ok := result.(*FetchResult)
 		if !ok {
-			tt.Errorf("expected a table Result, got %T", result)
+			tt.Fatalf("expected a table Result, got %T", result)
 		}
 
 		john := res.FetchAssoc()
@@ -51,6 +51,34 @@ func TestMemoryBackend(t *testing.T) {
 		}
 		if julia["age"].AsInt() != 30 {
 			tt.Errorf("expected 30, got %d", julia["age"])
+		}
+	})
+	testStatement(t, "DELETE FROM people WHERE age=30", func(tt *testing.T, result interface{}, err error) {
+		if err != nil {
+			t.Fatalf("error deleting rows: %s", err)
+		}
+
+		res, ok := result.(*DeleteResult)
+		if !ok {
+			tt.Fatalf("expected a DeleteResult, got %T", result)
+		}
+
+		if res.affectedRows != 1 {
+			t.Errorf("expected 1 row to be deleted, got %d", res.affectedRows)
+		}
+	})
+	testStatement(t, "DELETE FROM people", func(tt *testing.T, result interface{}, err error) {
+		if err != nil {
+			t.Fatalf("error deleting rows: %s", err)
+		}
+
+		res, ok := result.(*DeleteResult)
+		if !ok {
+			tt.Fatalf("expected a DeleteResult, got %T", result)
+		}
+
+		if res.affectedRows != 1 {
+			t.Errorf("expected 1 row to be deleted, got %d", res.affectedRows)
 		}
 	})
 }
@@ -76,6 +104,9 @@ func testStatement(t *testing.T, stmt string, callback func(*testing.T, interfac
 			callback(tt, nil, engine.Insert(st))
 		case *ast.SelectStatement:
 			res, err := engine.Select(st)
+			callback(tt, res, err)
+		case *ast.DeleteStatement:
+			res, err := engine.Delete(st)
 			callback(tt, res, err)
 		}
 	})

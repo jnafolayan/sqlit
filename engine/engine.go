@@ -27,14 +27,14 @@ type ResultColumn struct {
 	Name string
 }
 
-type Result struct {
+type FetchResult struct {
 	Rows    [][]Cell
 	Columns []*ResultColumn
 
 	it *lib.VirtualIterator[RowAssoc]
 }
 
-func (r *Result) FetchAssoc() RowAssoc {
+func (r *FetchResult) FetchAssoc() RowAssoc {
 	if r.it == nil {
 		// TODO: optimize 'res'
 		r.it = lib.NewVirtualIterator(len(r.Rows), func(cursor int) RowAssoc {
@@ -49,6 +49,10 @@ func (r *Result) FetchAssoc() RowAssoc {
 	return r.it.Next()
 }
 
+type DeleteResult struct {
+	affectedRows int
+}
+
 var (
 	ErrInvalidDataType = errors.New("Invalid datatype")
 	ErrTableNotFound   = errors.New("Table not found")
@@ -57,7 +61,8 @@ var (
 )
 
 type Engine interface {
-	Select(*ast.SelectStatement) (*Result, error)
+	Select(*ast.SelectStatement) (*FetchResult, error)
 	CreateTable(*ast.CreateTableStatement) error
 	Insert(*ast.InsertStatement) error
+	Delete(*ast.DeleteStatement) error
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func FormatSelectResult(result *engine.Result) string {
+func FormatSelectResult(result *engine.FetchResult) string {
 	cellSizes := map[int]int{}
 	for i := range result.Columns {
 		cellSizes[i] = getLargestCellSize(i, result) + 2
@@ -62,7 +62,7 @@ func alignText(str string, length int, prefix string) string {
 	return res
 }
 
-func getLargestCellSize(column int, result *engine.Result) int {
+func getLargestCellSize(column int, result *engine.FetchResult) int {
 	largest := 0.
 	for _, row := range result.Rows {
 		content := ""

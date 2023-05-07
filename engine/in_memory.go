@@ -155,7 +155,7 @@ func (mb *MemoryBackend) Insert(stmt *ast.InsertStatement) error {
 	return nil
 }
 
-func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
+func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*FetchResult, error) {
 	t, ok := mb.tables[stmt.Table.Literal]
 	if !ok {
 		return nil, ErrTableNotFound
@@ -218,9 +218,34 @@ func (mb *MemoryBackend) Select(stmt *ast.SelectStatement) (*Result, error) {
 		resultRows = append(resultRows, res)
 	}
 
-	return &Result{
+	return &FetchResult{
 		Rows:    resultRows,
 		Columns: columns,
+	}, nil
+}
+
+func (mb *MemoryBackend) Delete(stmt *ast.DeleteStatement) (*DeleteResult, error) {
+	t, ok := mb.tables[stmt.Table.Literal]
+	if !ok {
+		return nil, ErrTableNotFound
+	}
+
+	colNameToIdx := generateColNameToIndexMap(t.columns)
+	startingRows := len(t.rows)
+
+	for i := 0; i < len(t.rows); i++ {
+		if stmt.Predicate != nil {
+			if !filterRow(t.rows[i], t.columns, colNameToIdx, stmt.Predicate) {
+				continue
+			}
+		}
+
+		t.rows = append(t.rows[:i], t.rows[i+1:]...)
+		i--
+	}
+
+	return &DeleteResult{
+		affectedRows: startingRows - len(t.rows),
 	}, nil
 }
 
@@ -239,6 +264,12 @@ func filterRow(row []memoryCell, columns []*tableColumn, colNameToIdx map[string
 		if !ok {
 			continue
 		}
+
+		// skip null values
+		if row[colIdx] == nil {
+			continue
+		}
+
 		switch col.columnType {
 		case INT_COLUMN:
 			scope.SetVar(col.name, &ast.IntegerLiteral{Value: row[colIdx].AsInt()})

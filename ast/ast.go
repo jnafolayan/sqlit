@@ -12,6 +12,7 @@ const (
 	SELECT       NodeType = "SELECT"
 	CREATE_TABLE NodeType = "CREATE_TABLE"
 	INSERT       NodeType = "INSERT"
+	DELETE       NodeType = "DELETE"
 
 	INTEGER    NodeType = "INTEGER"
 	FLOAT      NodeType = "FLOAT"
@@ -113,6 +114,22 @@ func (is *InsertStatement) String() string {
 	cols := strings.Join(columns, ", ")
 	vals := strings.Join(values, ", ")
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", is.Table.Literal, cols, vals)
+}
+
+type DeleteStatement struct {
+	Table     *token.Token
+	Predicate Expression
+}
+
+func (ds *DeleteStatement) statementNode() {}
+func (ds *DeleteStatement) Type() NodeType { return DELETE }
+func (ds *DeleteStatement) String() string {
+	predicate := ""
+	if ds.Predicate != nil {
+		predicate = fmt.Sprintf(" WHERE %s", ds.Predicate.String())
+	}
+
+	return fmt.Sprintf("DELETE FROM %s%s", ds.Table.Literal, predicate)
 }
 
 type IntegerLiteral struct {
