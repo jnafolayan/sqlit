@@ -50,7 +50,7 @@ func (r *FetchResult) FetchAssoc() RowAssoc {
 }
 
 type DeleteResult struct {
-	affectedRows int
+	AffectedRows int
 }
 
 var (

@@ -245,7 +245,7 @@ func (mb *MemoryBackend) Delete(stmt *ast.DeleteStatement) (*DeleteResult, error
 	}
 
 	return &DeleteResult{
-		affectedRows: startingRows - len(t.rows),
+		AffectedRows: startingRows - len(t.rows),
 	}, nil
 }
 

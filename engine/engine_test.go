@@ -63,8 +63,8 @@ func TestMemoryBackend(t *testing.T) {
 			tt.Fatalf("expected a DeleteResult, got %T", result)
 		}
 
-		if res.affectedRows != 1 {
-			t.Errorf("expected 1 row to be deleted, got %d", res.affectedRows)
+		if res.AffectedRows != 1 {
+			t.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
 		}
 	})
 	testStatement(t, "DELETE FROM people", func(tt *testing.T, result interface{}, err error) {
@@ -77,8 +77,8 @@ func TestMemoryBackend(t *testing.T) {
 			tt.Fatalf("expected a DeleteResult, got %T", result)
 		}
 
-		if res.affectedRows != 1 {
-			t.Errorf("expected 1 row to be deleted, got %d", res.affectedRows)
+		if res.AffectedRows != 1 {
+			t.Errorf("expected 1 row to be deleted, got %d", res.AffectedRows)
 		}
 	})
 }
